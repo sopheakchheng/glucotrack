@@ -7,9 +7,6 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 
-<!-- ═══════════════════════════════════════════════════
-     FIREBASE CONFIGURATION
-     ═══════════════════════════════════════════════════ -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -51,12 +48,15 @@
   --low:#60a5fa; --normal:#6ee7b7; --elevated:#fbbf24; --high:#f87171; --critical:#ef4444;
   --text:#e8edf8; --muted:#7888b0; --dim:#3d4d72;
   --font-km:'Kantumruy Pro',sans-serif;
+  
+  /* Zone colors for chart */
+  --zone-low:#3b82f6; --zone-normal:#22c55e; --zone-elevated:#eab308; --zone-high:#ef4444;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden}
 body{font-family:var(--font-km);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
 
-/* Loading Screen */
+/* Loading */
 #loadingScreen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:14px}
 .loader-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:var(--accent);display:flex;align-items:center;gap:10px}
 .loader-sub{font-size:13px;color:var(--muted)}
@@ -66,51 +66,166 @@ body{font-family:var(--font-km);background:var(--bg);color:var(--text);font-size
 .loader-dot:nth-child(3){animation-delay:.4s}
 @keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
 
-/* App Container */
 #app{display:none;height:100%;flex-direction:column}
 
 /* Header */
-.header{padding:14px 20px;display:flex;justify-content:space-between;align-items:center;background:var(--surface);border-bottom:1px solid var(--border)}
+.header{padding:12px 20px;display:flex;justify-content:space-between;align-items:center;background:var(--surface);border-bottom:1px solid var(--border)}
 .header-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--accent);display:flex;align-items:center;gap:8px}
-.header-logo .icon{font-size:20px}
 .header-right{display:flex;align-items:center;gap:8px}
 .lang-btn{background:var(--card);border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:20px;font-size:11px;cursor:pointer;font-family:var(--font-km);transition:all .2s}
 .lang-btn.active{border-color:var(--accent);color:var(--accent)}
 .user-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;border:2px solid var(--border);font-family:'Syne',sans-serif}
 
-/* Main Content */
 .main{flex:1;overflow:hidden;display:flex;flex-direction:column}
 
-/* Pages */
 .page{display:none;flex:1;overflow-y:auto;padding:16px 20px 100px;animation:fadeUp .25s ease}
 .page.active{display:block}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
-/* Section Header */
+/* ═══════════════════════════════════════════
+   NEW LOG PAGE - SIMPLIFIED & EASY INPUT
+   ═══════════════════════════════════════════ */
+.log-hero{
+  background:linear-gradient(135deg,#0d2a1f 0%,var(--card) 100%);
+  border:1px solid var(--accent3);
+  border-radius:24px;
+  padding:28px 24px;
+  text-align:center;
+  margin-bottom:20px;
+}
+.log-hero-title{
+  font-size:14px;
+  color:var(--muted);
+  margin-bottom:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}
+.log-hero-title::before,.log-hero-title::after{
+  content:'';width:30px;height:1px;background:var(--border);
+}
+
+/* Big Number Input */
+.big-input-wrap{
+  position:relative;
+  margin-bottom:20px;
+}
+.big-input{
+  width:100%;
+  font-family:'Syne',sans-serif;
+  font-size:72px;
+  font-weight:800;
+  text-align:center;
+  border:none;
+  background:transparent;
+  color:var(--accent);
+  outline:none;
+  caret-color:var(--accent);
+}
+.big-input::placeholder{color:var(--dim);font-weight:700}
+.big-input-unit{
+  font-size:16px;
+  color:var(--muted);
+  text-align:center;
+  margin-top:-8px;
+}
+
+/* Quick Type Selector - Horizontal Scroll */
+.quick-types{
+  display:flex;
+  gap:10px;
+  overflow-x:auto;
+  padding:4px 0 16px;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.quick-types::-webkit-scrollbar{display:none}
+.quick-type{
+  flex-shrink:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  padding:14px 18px;
+  background:var(--card);
+  border:2px solid var(--border);
+  border-radius:16px;
+  cursor:pointer;
+  transition:all .2s;
+  min-width:80px;
+}
+.quick-type .icon{font-size:28px}
+.quick-type .label{font-size:11px;color:var(--muted);font-weight:500;white-space:nowrap}
+.quick-type.sel{
+  border-color:var(--accent);
+  background:rgba(110,231,183,.08);
+}
+.quick-type.sel .label{color:var(--accent)}
+.quick-type:active{transform:scale(.95)}
+
+/* Note Input */
+.note-input{
+  width:100%;
+  padding:14px 18px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  color:var(--text);
+  font-size:14px;
+  font-family:var(--font-km);
+  outline:none;
+  margin-bottom:20px;
+  transition:border-color .2s;
+}
+.note-input:focus{border-color:var(--accent)}
+.note-input::placeholder{color:var(--dim)}
+
+/* Save Button */
+.save-btn{
+  width:100%;
+  padding:18px;
+  background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);
+  border:none;
+  border-radius:16px;
+  color:#051a0e;
+  font-size:18px;
+  font-weight:700;
+  cursor:pointer;
+  font-family:var(--font-km);
+  transition:all .15s;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+.save-btn:active{transform:scale(.97);opacity:.9}
+.save-btn:disabled{opacity:.5}
+
+/* Last Reading Mini Card */
+.last-reading-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px 18px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin-top:20px;
+}
+.last-reading-dot{width:10px;height:10px;border-radius:50%}
+.last-reading-info{flex:1}
+.last-reading-label{font-size:11px;color:var(--muted)}
+.last-reading-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:700}
+.last-reading-time{font-size:11px;color:var(--muted)}
+
+/* ═══════════════════════════════════════════
+   MINE PAGE
+   ═══════════════════════════════════════════ */
 .section-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .section-hd h2{font-size:15px;font-weight:700}
 .section-hd span{font-size:11px;color:var(--muted)}
 
-/* Stats Strip */
-.stats-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
-.strip-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 10px;text-align:center}
-.strip-val{font-family:'Syne',sans-serif;font-size:24px;font-weight:700;margin-bottom:2px}
-.strip-lbl{font-size:11px;color:var(--muted)}
-
-/* Member Card */
-.member-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:all .2s}
-.member-card:active{border-color:var(--accent);transform:scale(.98)}
-.member-card.is-me{border-color:var(--accent3);background:linear-gradient(135deg,#161b2e,#0d2a1f)}
-.member-row{display:flex;align-items:center;gap:12px}
-.member-info{flex:1;min-width:0}
-.member-name{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.member-sub{font-size:11px;color:var(--muted);margin-top:2px}
-.member-reading{text-align:right;flex-shrink:0}
-.member-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:700}
-.member-unit{font-size:10px;color:var(--muted)}
-.member-badge{display:inline-block;padding:3px 9px;border-radius:10px;font-size:10px;font-weight:600;margin-top:3px}
-
-/* My Status Card */
 .my-status{background:linear-gradient(135deg,#0d2a1f,var(--card));border:1px solid var(--accent3);border-radius:18px;padding:18px;margin-bottom:14px}
 .my-status-top{display:flex;justify-content:space-between;align-items:flex-start}
 .my-status-label{font-size:11px;color:var(--muted);margin-bottom:4px}
@@ -122,27 +237,14 @@ body{font-family:var(--font-km);background:var(--bg);color:var(--text);font-size
 .my-stat .v{font-family:'Syne',sans-serif;font-size:20px;font-weight:700}
 .my-stat .l{font-size:11px;color:var(--muted);margin-top:2px}
 
-/* Chart Box */
+/* Chart Box with Zone Legend */
 .chart-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px}
-.chart-box h3{font-size:12px;font-weight:600;margin-bottom:12px;color:var(--muted)}
+.chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.chart-header h3{font-size:12px;font-weight:600;color:var(--muted)}
+.zone-legend{display:flex;gap:10px}
+.zone-item{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--muted)}
+.zone-dot{width:8px;height:8px;border-radius:2px}
 canvas{width:100%!important;display:block}
-
-/* Log Form */
-.log-form{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px}
-.log-form h3{font-size:18px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
-.type-btn{padding:12px 6px;border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--muted);font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font-km);text-align:center;transition:all .2s}
-.type-btn .e{display:block;font-size:22px;margin-bottom:5px}
-.type-btn.sel{border-color:var(--accent);color:var(--accent);background:rgba(110,231,183,.08)}
-.type-btn:active{transform:scale(.95)}
-.fg{margin-bottom:16px}
-.fg label{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:8px;display:block}
-.fg input{width:100%;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:16px;font-family:var(--font-km);outline:none;transition:border-color .2s}
-.fg input:focus{border-color:var(--accent)}
-.fg input::placeholder{color:var(--dim)}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.btn-log{width:100%;padding:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:14px;color:#051a0e;font-size:16px;font-weight:700;cursor:pointer;font-family:var(--font-km);transition:all .15s}
-.btn-log:active{transform:scale(.97);opacity:.85}
 
 /* Reading Item */
 .reading-item{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:8px}
@@ -152,8 +254,28 @@ canvas{width:100%!important;display:block}
 .r-time{font-size:11px;color:var(--muted);margin-top:2px}
 .r-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:700}
 .r-unit{font-size:10px;color:var(--muted);text-align:right}
-.del-btn{background:none;border:none;color:var(--dim);font-size:14px;cursor:pointer;padding:6px;border-radius:8px;transition:color .2s}
+.del-btn{background:none;border:none;color:var(--dim);font-size:14px;cursor:pointer;padding:6px;border-radius:8px}
 .del-btn:active{color:var(--high)}
+
+/* ═══════════════════════════════════════════
+   GROUP PAGE
+   ═══════════════════════════════════════════ */
+.stats-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.strip-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 10px;text-align:center}
+.strip-val{font-family:'Syne',sans-serif;font-size:24px;font-weight:700;margin-bottom:2px}
+.strip-lbl{font-size:11px;color:var(--muted)}
+
+.member-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:all .2s}
+.member-card:active{border-color:var(--accent);transform:scale(.98)}
+.member-card.is-me{border-color:var(--accent3);background:linear-gradient(135deg,#161b2e,#0d2a1f)}
+.member-row{display:flex;align-items:center;gap:12px}
+.member-info{flex:1;min-width:0}
+.member-name{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.member-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.member-reading{text-align:right;flex-shrink:0}
+.member-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:700}
+.member-unit{font-size:10px;color:var(--muted)}
+.member-badge{display:inline-block;padding:3px 9px;border-radius:10px;font-size:10px;font-weight:600;margin-top:3px}
 
 /* Modal */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;display:none;align-items:flex-end}
@@ -186,7 +308,6 @@ canvas{width:100%!important;display:block}
 .av-4{background:#c4b5fd;color:#3b0764}.av-5{background:#fca5a5;color:#7f1d1d}
 .av-6{background:#a7f3d0;color:#064e3b}.av-7{background:#fdba74;color:#7c2d12}
 
-/* Scrollbar */
 ::-webkit-scrollbar{width:3px}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 </style>
@@ -203,10 +324,7 @@ canvas{width:100%!important;display:block}
 
 <div id="app">
   <header class="header">
-    <div class="header-logo">
-      <span class="icon">🩸</span>
-      <span>GlucoTrack</span>
-    </div>
+    <div class="header-logo">🩸 GlucoTrack</div>
     <div class="header-right">
       <button class="lang-btn active" id="btnKm" onclick="setLang('km')">ខ្មែរ</button>
       <button class="lang-btn" id="btnEn" onclick="setLang('en')">EN</button>
@@ -215,30 +333,64 @@ canvas{width:100%!important;display:block}
   </header>
 
   <main class="main">
-    <!-- GROUP PAGE -->
-    <div class="page active" id="page-group">
-      <div class="stats-strip">
-        <div class="strip-card">
-          <div class="strip-val" id="g-members" style="color:var(--accent)">0</div>
-          <div class="strip-lbl" data-i18n="members">សមាជិក</div>
+    <!-- ═══════════════════════════════════════════
+         PAGE 1: LOG (DEFAULT)
+         ═══════════════════════════════════════════ -->
+    <div class="page active" id="page-log">
+      <div class="log-hero">
+        <div class="log-hero-title" data-i18n="enterReading">បញ្ចូលលទ្ធផល</div>
+        
+        <!-- Big Number Input -->
+        <div class="big-input-wrap">
+          <input type="number" class="big-input" id="gInput" placeholder="---" inputmode="numeric" min="20" max="600">
+          <div class="big-input-unit">mg/dL</div>
         </div>
-        <div class="strip-card">
-          <div class="strip-val" id="g-readings" style="color:var(--elevated)">0</div>
-          <div class="strip-lbl" data-i18n="today">ថ្ងៃនេះ</div>
+
+        <!-- Quick Type Selector -->
+        <div class="quick-types">
+          <div class="quick-type sel" data-t="Fasting" onclick="selType(this)">
+            <span class="icon">🌅</span>
+            <span class="label" data-i18n="fasting">ពេលព្រឹក</span>
+          </div>
+          <div class="quick-type" data-t="Pre-Meal" onclick="selType(this)">
+            <span class="icon">🍽️</span>
+            <span class="label" data-i18n="preMeal">មុនញ៉ាំ</span>
+          </div>
+          <div class="quick-type" data-t="Post-Meal" onclick="selType(this)">
+            <span class="icon">☕</span>
+            <span class="label" data-i18n="postMeal">ក្រោយញ៉ាំ</span>
+          </div>
+          <div class="quick-type" data-t="Bedtime" onclick="selType(this)">
+            <span class="icon">🌙</span>
+            <span class="label" data-i18n="bedtime">ពេលគេង</span>
+          </div>
+          <div class="quick-type" data-t="Exercise" onclick="selType(this)">
+            <span class="icon">🏃</span>
+            <span class="label" data-i18n="exercise">ហាត់ប្រាណ</span>
+          </div>
+          <div class="quick-type" data-t="Random" onclick="selType(this)">
+            <span class="icon">📋</span>
+            <span class="label" data-i18n="random">ចៃដន្យ</span>
+          </div>
         </div>
-        <div class="strip-card">
-          <div class="strip-val" id="g-avg" style="color:var(--normal)">—</div>
-          <div class="strip-lbl" data-i18n="groupAvg">មធ្យមក្រុម</div>
-        </div>
+
+        <!-- Optional Note -->
+        <input type="text" class="note-input" id="nInput" placeholder="📝 កំណត់ចំណាំ (optional)">
+
+        <!-- Save Button -->
+        <button class="save-btn" id="saveBtn" onclick="saveReading()">
+          <span>💾</span>
+          <span data-i18n="saveReading">រក្សាទុកលទ្ធផល</span>
+        </button>
       </div>
-      <div class="section-hd">
-        <h2 data-i18n="memberList">បញ្ជីសមាជិក</h2>
-        <span id="lastUpdate"></span>
-      </div>
-      <div id="membersList"></div>
+
+      <!-- Last Reading -->
+      <div id="lastReadingCard"></div>
     </div>
 
-    <!-- MY PAGE -->
+    <!-- ═══════════════════════════════════════════
+         PAGE 2: MINE
+         ═══════════════════════════════════════════ -->
     <div class="page" id="page-mine">
       <div class="my-status">
         <div class="my-status-label" data-i18n="latestReading">លទ្ធផលចុងក្រោយ</div>
@@ -264,10 +416,20 @@ canvas{width:100%!important;display:block}
           </div>
         </div>
       </div>
+
+      <!-- Chart with Zone Legend -->
       <div class="chart-box">
-        <h3 data-i18n="trend7d">និន្នាការ ៧ ថ្ងៃ</h3>
-        <canvas id="myChart" height="140"></canvas>
+        <div class="chart-header">
+          <h3 data-i18n="trend7d">និន្នាការ ៧ ថ្ងៃ</h3>
+          <div class="zone-legend">
+            <div class="zone-item"><div class="zone-dot" style="background:var(--zone-high)"></div><span>>140</span></div>
+            <div class="zone-item"><div class="zone-dot" style="background:var(--zone-elevated)"></div><span>100-140</span></div>
+            <div class="zone-item"><div class="zone-dot" style="background:var(--zone-normal)"></div><span>70-100</span></div>
+          </div>
+        </div>
+        <canvas id="myChart" height="160"></canvas>
       </div>
+
       <div class="section-hd">
         <h2 data-i18n="myReadings">លទ្ធផលរបស់ខ្ញុំ</h2>
         <span id="myReadingCount"></span>
@@ -275,52 +437,32 @@ canvas{width:100%!important;display:block}
       <div id="myReadingsList"></div>
     </div>
 
-    <!-- LOG PAGE -->
-    <div class="page" id="page-log">
-      <div class="log-form">
-        <h3>✏️ <span data-i18n="logReading">កត់ត្រាលទ្ធផល</span></h3>
-        <div class="fg">
-          <label data-i18n="readingType">ប្រភេទការវាស់</label>
-          <div class="type-grid">
-            <button class="type-btn sel" data-t="Fasting" onclick="selType(this)">
-              <span class="e">🌅</span><span data-i18n="fasting">ពេលព្រឹក</span>
-            </button>
-            <button class="type-btn" data-t="Pre-Meal" onclick="selType(this)">
-              <span class="e">🍽️</span><span data-i18n="preMeal">មុនញ៉ាំ</span>
-            </button>
-            <button class="type-btn" data-t="Post-Meal" onclick="selType(this)">
-              <span class="e">☕</span><span data-i18n="postMeal">ក្រោយញ៉ាំ</span>
-            </button>
-            <button class="type-btn" data-t="Bedtime" onclick="selType(this)">
-              <span class="e">🌙</span><span data-i18n="bedtime">ពេលគេង</span>
-            </button>
-            <button class="type-btn" data-t="Exercise" onclick="selType(this)">
-              <span class="e">🏃</span><span data-i18n="exercise">ហាត់ប្រាណ</span>
-            </button>
-            <button class="type-btn" data-t="Random" onclick="selType(this)">
-              <span class="e">📋</span><span data-i18n="random">ចៃដន្យ</span>
-            </button>
-          </div>
+    <!-- ═══════════════════════════════════════════
+         PAGE 3: GROUP
+         ═══════════════════════════════════════════ -->
+    <div class="page" id="page-group">
+      <div class="stats-strip">
+        <div class="strip-card">
+          <div class="strip-val" id="g-members" style="color:var(--accent)">0</div>
+          <div class="strip-lbl" data-i18n="members">សមាជិក</div>
         </div>
-        <div class="form-row">
-          <div class="fg">
-            <label data-i18n="sugarLevel">កម្រិតស្ករ (mg/dL)</label>
-            <input type="number" id="gInput" placeholder="ឧ. 95" min="20" max="600" inputmode="numeric">
-          </div>
-          <div class="fg">
-            <label data-i18n="time">ម៉ោង</label>
-            <input type="time" id="tInput">
-          </div>
+        <div class="strip-card">
+          <div class="strip-val" id="g-readings" style="color:var(--elevated)">0</div>
+          <div class="strip-lbl" data-i18n="today">ថ្ងៃនេះ</div>
         </div>
-        <div class="fg">
-          <label data-i18n="note">កំណត់ចំណាំ (optional)</label>
-          <input type="text" id="nInput" placeholder="ឧ. ក្រោយញ៉ាំអាហារព្រឹក">
+        <div class="strip-card">
+          <div class="strip-val" id="g-avg" style="color:var(--normal)">—</div>
+          <div class="strip-lbl" data-i18n="groupAvg">មធ្យមក្រុម</div>
         </div>
-        <button class="btn-log" onclick="saveReading()" data-i18n="saveReading">រក្សាទុកលទ្ធផល →</button>
       </div>
+      <div class="section-hd">
+        <h2 data-i18n="memberList">បញ្ជីសមាជិក</h2>
+        <span id="lastUpdate"></span>
+      </div>
+      <div id="membersList"></div>
     </div>
 
-    <!-- RANKINGS PAGE -->
+    <!-- PAGE 4: RANKINGS -->
     <div class="page" id="page-rank">
       <div class="section-hd">
         <h2>🏆 <span data-i18n="rankings">ចំណាត់ថ្នាក់</span></h2>
@@ -346,16 +488,16 @@ canvas{width:100%!important;display:block}
   </div>
 </div>
 
-<!-- Bottom Nav -->
+<!-- Bottom Nav - Reordered: Log first, Mine second, Group third -->
 <nav class="bottom-nav">
-  <button class="nav-btn active" onclick="showPage('group',this)">
-    <span class="ni">👥</span><span data-i18n="group">ក្រុម</span>
+  <button class="nav-btn active" onclick="showPage('log',this)">
+    <span class="ni">✏️</span><span data-i18n="log">កត់ត្រា</span>
   </button>
   <button class="nav-btn" onclick="showPage('mine',this)">
     <span class="ni">📊</span><span data-i18n="mine">របស់ខ្ញុំ</span>
   </button>
-  <button class="nav-btn" onclick="showPage('log',this)">
-    <span class="ni">➕</span><span data-i18n="log">កត់ត្រា</span>
+  <button class="nav-btn" onclick="showPage('group',this)">
+    <span class="ni">👥</span><span data-i18n="group">ក្រុម</span>
   </button>
   <button class="nav-btn" onclick="showPage('rank',this)">
     <span class="ni">🏆</span><span data-i18n="rank">ចំណាត់</span>
@@ -371,6 +513,7 @@ canvas{width:100%!important;display:block}
 const LANG = {
   km: {
     connecting: 'កំពុងភ្ជាប់...',
+    enterReading: 'បញ្ចូលលទ្ធផល',
     members: 'សមាជិក', today: 'ថ្ងៃនេះ', groupAvg: 'មធ្យមក្រុម',
     memberList: 'បញ្ជីសមាជិក', latestReading: 'លទ្ធផលចុងក្រោយ',
     noData: 'មិនទាន់មានទិន្នន័យ', avg7d: 'មធ្យម ៧ថ្ងៃ',
@@ -379,11 +522,11 @@ const LANG = {
     fasting: 'ពេលព្រឹក', preMeal: 'មុនញ៉ាំ', postMeal: 'ក្រោយញ៉ាំ',
     bedtime: 'ពេលគេង', exercise: 'ហាត់ប្រាណ', random: 'ចៃដន្យ',
     sugarLevel: 'កម្រិតស្ករ (mg/dL)', time: 'ម៉ោង', note: 'កំណត់ចំណាំ',
-    saveReading: 'រក្សាទុកលទ្ធផល →', rankings: 'ចំណាត់ថ្នាក់',
+    saveReading: 'រក្សាទុកលទ្ធផល', rankings: 'ចំណាត់ថ្នាក់',
     close: 'បិទ', group: 'ក្រុម', mine: 'របស់ខ្ញុំ', log: 'កត់ត្រា', rank: 'ចំណាត់',
-    justNow: 'ទើបតែ', readingsToday: 'លទ្ធផលថ្ងៃនេះ',
+    justNow: 'ទើបតែ', readingsToday: 'ថ្ងៃនេះ',
     noMembers: 'អ្នកជាមនុស្សដំបូង!\nកត់ត្រាលទ្ធផលដើម្បីចូលក្រុម។',
-    noReadings: 'មិនទាន់មានលទ្ធផល\nទៅផ្ទាំង «កត់ត្រា» ដើម្បីបន្ថែម!',
+    noReadings: 'មិនទាន់មានលទ្ធផល',
     noRankings: 'មិនទាន់មានសមាជិក',
     loadError: 'មិនអាចភ្ជាប់បាន\nសូមព្យាយាមម្ដងទៀត',
     saved: '✅ រក្សាទុករួចរាល់!', deleted: 'បានលុប',
@@ -391,10 +534,12 @@ const LANG = {
     totalReadings: 'លទ្ធផលសរុប',
     low: 'ទាប', normal: 'ធម្មតា', elevated: 'ខ្ពស់បន្តិច', high: 'ខ្ពស់', critical: 'គ្រោះថ្នាក់',
     you: '(អ្នក)', latest: 'ចុងក្រោយ', trend: 'និន្នាការ', recent: 'ថ្មីៗ',
-    needChart: 'ត្រូវការ ២+ លទ្ធផល', noData2: 'មិនមានទិន្នន័យ'
+    needChart: 'ត្រូវការ ២+ លទ្ធផល', noData2: 'មិនមានទិន្នន័យ',
+    lastReading: 'លទ្ធផលចុងក្រោយ'
   },
   en: {
     connecting: 'Connecting...',
+    enterReading: 'Enter Reading',
     members: 'Members', today: 'Today', groupAvg: 'Group Avg',
     memberList: 'Members', latestReading: 'Latest Reading',
     noData: 'No data yet', avg7d: '7d Average',
@@ -403,11 +548,11 @@ const LANG = {
     fasting: 'Fasting', preMeal: 'Pre-Meal', postMeal: 'Post-Meal',
     bedtime: 'Bedtime', exercise: 'Exercise', random: 'Random',
     sugarLevel: 'Blood Sugar (mg/dL)', time: 'Time', note: 'Note (optional)',
-    saveReading: 'Save Reading →', rankings: 'Rankings',
+    saveReading: 'Save Reading', rankings: 'Rankings',
     close: 'Close', group: 'Group', mine: 'Mine', log: 'Log', rank: 'Rank',
     justNow: 'Just now', readingsToday: 'today',
     noMembers: "You're first!\nLog a reading to join.",
-    noReadings: 'No readings yet.\nGo to Log to add one!',
+    noReadings: 'No readings yet.',
     noRankings: 'No members yet',
     loadError: 'Cannot connect.\nPlease try again.',
     saved: '✅ Saved!', deleted: 'Deleted',
@@ -415,7 +560,8 @@ const LANG = {
     totalReadings: 'total readings',
     low: 'LOW', normal: 'NORMAL', elevated: 'ELEVATED', high: 'HIGH', critical: 'CRITICAL',
     you: '(You)', latest: 'Latest', trend: 'Trend', recent: 'Recent',
-    needChart: 'Need 2+ readings', noData2: 'No data'
+    needChart: 'Need 2+ readings', noData2: 'No data',
+    lastReading: 'Last reading'
   }
 };
 
@@ -432,6 +578,7 @@ function setLang(l) {
   if (p === 'group') renderGroup();
   if (p === 'mine') renderMine();
   if (p === 'rank') renderRankings();
+  if (p === 'log') updateLastReading();
 }
 
 function applyTranslations() {
@@ -525,6 +672,259 @@ const TYPE_MAP = {
 const typeLabel = k => TYPE_MAP[k]?.[lang] || k;
 
 // ══════════════════════════════════════════════════════════════
+//  LOG PAGE
+// ══════════════════════════════════════════════════════════════
+let selT = 'Fasting';
+
+function selType(btn) {
+  document.querySelectorAll('.quick-type').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  selT = btn.dataset.t;
+}
+
+async function saveReading() {
+  const val = parseInt(document.getElementById('gInput').value);
+  if (!val || val < 20 || val > 600) {
+    showToast(t('invalidInput'), '#f87171');
+    return;
+  }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+
+  const readings = await getReadings(ME.id);
+  readings.push({
+    id: Date.now().toString(),
+    value: val,
+    type: selT,
+    note: document.getElementById('nInput').value.trim(),
+    timestamp: Date.now()
+  });
+
+  await saveReadings(ME.id, readings);
+
+  document.getElementById('gInput').value = '';
+  document.getElementById('nInput').value = '';
+
+  if (tg?.HapticFeedback) {
+    try { tg.HapticFeedback.notificationOccurred('success'); } catch {}
+  }
+
+  showToast(t('saved'));
+  btn.disabled = false;
+  
+  updateLastReading();
+  await renderGroup();
+}
+
+async function updateLastReading() {
+  const readings = await getReadings(ME.id);
+  const card = document.getElementById('lastReadingCard');
+  
+  if (readings.length > 0) {
+    const last = readings[readings.length - 1];
+    const s = getStatus(last.value);
+    card.innerHTML = `
+      <div class="last-reading-card">
+        <div class="last-reading-dot" style="background:${s.color}"></div>
+        <div class="last-reading-info">
+          <div class="last-reading-label">${t('lastReading')}</div>
+          <div class="last-reading-val" style="color:${s.color}">${last.value} mg/dL</div>
+        </div>
+        <div class="last-reading-time">${typeLabel(last.type)} · ${fmtT(last.timestamp)}</div>
+      </div>
+    `;
+  } else {
+    card.innerHTML = '';
+  }
+}
+
+async function delReading(rid) {
+  let r = await getReadings(ME.id);
+  r = r.filter(x => x.id !== rid);
+  await saveReadings(ME.id, r);
+  document.getElementById('ri-' + rid)?.remove();
+  await renderMine();
+  await renderGroup();
+  showToast(t('deleted'), '#f87171');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  MY PAGE
+// ══════════════════════════════════════════════════════════════
+async function renderMine() {
+  const readings = await getReadings(ME.id);
+  const last = readings.length ? readings[readings.length - 1] : null;
+
+  if (last) {
+    const s = getStatus(last.value);
+    document.getElementById('myLatestVal').textContent = last.value;
+    document.getElementById('myLatestVal').style.color = s.color;
+    document.getElementById('myLatestType').textContent = typeLabel(last.type) + ' · ' + fmtT(last.timestamp);
+    const badge = document.getElementById('myStatusBadge');
+    badge.textContent = s.icon + ' ' + t(s.lk);
+    badge.style.background = s.bg;
+    badge.style.color = s.color;
+  } else {
+    document.getElementById('myLatestType').textContent = t('noData');
+  }
+
+  const sevenAgo = Date.now() - 7 * 86400000;
+  const recent = readings.filter(r => r.timestamp > sevenAgo);
+  const todayR = readings.filter(r => new Date(r.timestamp).toDateString() === todayStr());
+  const avg = recent.length ? Math.round(recent.reduce((a, b) => a + b.value, 0) / recent.length) : null;
+  const a1c = avg ? ((avg + 46.7) / 28.7).toFixed(1) : null;
+
+  document.getElementById('myTodayCount').textContent = todayR.length;
+  document.getElementById('myAvg').textContent = avg || '—';
+  document.getElementById('myA1c').textContent = a1c ? a1c + '%' : '—';
+  document.getElementById('myReadingCount').textContent = readings.length + ' ' + t('total');
+
+  drawChart('myChart', recent.slice(-14), 160);
+
+  document.getElementById('myReadingsList').innerHTML = readings.length
+    ? [...readings].reverse().slice(0, 30).map(r => rHTML(r, true)).join('')
+    : `<div class="empty"><div class="icon">🩸</div><p>${t('noReadings')}</p></div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CHART WITH COLORED ZONES
+// ══════════════════════════════════════════════════════════════
+function drawChart(id, readings, h) {
+  const c = document.getElementById(id);
+  if (!c) return;
+
+  const dpr = devicePixelRatio || 1;
+  c.width = c.offsetWidth * dpr;
+  c.height = h * dpr;
+  const ctx = c.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = c.offsetWidth;
+  ctx.clearRect(0, 0, W, h);
+
+  if (readings.length < 2) {
+    ctx.fillStyle = '#3d4d72';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(t('needChart'), W / 2, h / 2);
+    return;
+  }
+
+  const pL = 38, pR = 10, pT = 14, pB = 24;
+  const cW = W - pL - pR, cH = h - pT - pB;
+  const vals = readings.map(r => r.value);
+  const minV = Math.max(0, Math.min(...vals, 60) - 10);
+  const maxV = Math.max(...vals, 160) + 20;
+
+  const toX = i => pL + (i / (readings.length - 1)) * cW;
+  const toY = v => pT + cH - ((v - minV) / (maxV - minV)) * cH;
+
+  // ═══ DRAW COLORED ZONES ═══
+  // Red zone (>140)
+  if (maxV > 140) {
+    ctx.fillStyle = 'rgba(239,68,68,.12)';
+    const y140 = toY(140);
+    const yMax = toY(maxV);
+    ctx.fillRect(pL, yMax, cW, y140 - yMax);
+  }
+
+  // Yellow zone (100-140)
+  ctx.fillStyle = 'rgba(234,179,8,.1)';
+  const y140 = toY(Math.min(140, maxV));
+  const y100 = toY(Math.max(100, minV));
+  if (y100 > y140) {
+    ctx.fillRect(pL, y140, cW, y100 - y140);
+  }
+
+  // Green zone (70-100)
+  ctx.fillStyle = 'rgba(34,197,94,.1)';
+  const y100g = toY(Math.min(100, maxV));
+  const y70 = toY(Math.max(70, minV));
+  if (y70 > y100g) {
+    ctx.fillRect(pL, y100g, cW, y70 - y100g);
+  }
+
+  // Grid lines with labels
+  ctx.strokeStyle = '#252d4a';
+  ctx.lineWidth = 1;
+  [70, 100, 140, 180].forEach(v => {
+    if (v < minV || v > maxV) return;
+    const y = toY(v);
+    ctx.beginPath();
+    ctx.setLineDash([3, 4]);
+    ctx.moveTo(pL, y);
+    ctx.lineTo(W - pR, y);
+    ctx.stroke();
+    
+    // Label with color
+    let labelColor = '#3d4d72';
+    if (v === 140) labelColor = '#ef4444';
+    else if (v === 100) labelColor = '#eab308';
+    else if (v === 70) labelColor = '#22c55e';
+    
+    ctx.fillStyle = labelColor;
+    ctx.font = '9px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(v, pL - 4, y + 3);
+  });
+  ctx.setLineDash([]);
+
+  // Area fill gradient
+  const g = ctx.createLinearGradient(0, pT, 0, h - pB);
+  g.addColorStop(0, 'rgba(110,231,183,.3)');
+  g.addColorStop(1, 'rgba(110,231,183,0)');
+  ctx.beginPath();
+  ctx.moveTo(toX(0), h - pB);
+  readings.forEach((r, i) => ctx.lineTo(toX(i), toY(r.value)));
+  ctx.lineTo(toX(readings.length - 1), h - pB);
+  ctx.closePath();
+  ctx.fillStyle = g;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.strokeStyle = '#6ee7b7';
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  readings.forEach((r, i) => i === 0 ? ctx.moveTo(toX(i), toY(r.value)) : ctx.lineTo(toX(i), toY(r.value)));
+  ctx.stroke();
+
+  // Points with status colors
+  readings.forEach((r, i) => {
+    const s = getStatus(r.value);
+    ctx.beginPath();
+    ctx.arc(toX(i), toY(r.value), 5, 0, Math.PI * 2);
+    ctx.fillStyle = s.color;
+    ctx.fill();
+    ctx.strokeStyle = '#080b12';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  READING HTML
+// ══════════════════════════════════════════════════════════════
+function rHTML(r, canDel) {
+  const s = getStatus(r.value);
+  return `
+    <div class="reading-item" id="ri-${r.id}">
+      <div class="r-dot" style="background:${s.color}"></div>
+      <div class="r-info">
+        <div class="r-type">${esc(typeLabel(r.type))}</div>
+        <div class="r-time">${fmtD(r.timestamp)} · ${fmtT(r.timestamp)}${r.note ? ' · ' + esc(r.note) : ''}</div>
+      </div>
+      <div>
+        <div class="r-val" style="color:${s.color}">${r.value}</div>
+        <div class="r-unit">mg/dL</div>
+      </div>
+      ${canDel ? `<button class="del-btn" onclick="delReading('${r.id}')">✕</button>` : ''}
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════════════════════════
 //  GROUP PAGE
 // ══════════════════════════════════════════════════════════════
 async function renderGroup() {
@@ -555,7 +955,6 @@ async function renderGroup() {
   document.getElementById('g-avg').textContent = gAvg || '—';
   document.getElementById('lastUpdate').textContent = t('justNow');
 
-  // Sort by latest reading
   data.sort((a, b) => {
     const la = a.readings.length ? a.readings[a.readings.length - 1].timestamp : 0;
     const lb = b.readings.length ? b.readings[b.readings.length - 1].timestamp : 0;
@@ -590,204 +989,6 @@ async function renderGroup() {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  MY PAGE
-// ══════════════════════════════════════════════════════════════
-async function renderMine() {
-  const readings = await getReadings(ME.id);
-  const last = readings.length ? readings[readings.length - 1] : null;
-
-  if (last) {
-    const s = getStatus(last.value);
-    document.getElementById('myLatestVal').textContent = last.value;
-    document.getElementById('myLatestVal').style.color = s.color;
-    document.getElementById('myLatestType').textContent = typeLabel(last.type) + ' · ' + fmtT(last.timestamp);
-    const badge = document.getElementById('myStatusBadge');
-    badge.textContent = s.icon + ' ' + t(s.lk);
-    badge.style.background = s.bg;
-    badge.style.color = s.color;
-  } else {
-    document.getElementById('myLatestType').textContent = t('noData');
-  }
-
-  const sevenAgo = Date.now() - 7 * 86400000;
-  const recent = readings.filter(r => r.timestamp > sevenAgo);
-  const todayR = readings.filter(r => new Date(r.timestamp).toDateString() === todayStr());
-  const avg = recent.length ? Math.round(recent.reduce((a, b) => a + b.value, 0) / recent.length) : null;
-  const a1c = avg ? ((avg + 46.7) / 28.7).toFixed(1) : null;
-
-  document.getElementById('myTodayCount').textContent = todayR.length;
-  document.getElementById('myAvg').textContent = avg || '—';
-  document.getElementById('myA1c').textContent = a1c ? a1c + '%' : '—';
-  document.getElementById('myReadingCount').textContent = readings.length + ' ' + t('total');
-
-  drawChart('myChart', recent.slice(-14), 140);
-
-  document.getElementById('myReadingsList').innerHTML = readings.length
-    ? [...readings].reverse().slice(0, 30).map(r => rHTML(r, true)).join('')
-    : `<div class="empty"><div class="icon">🩸</div><p>${t('noReadings').replace(/\n/g, '<br>')}</p></div>`;
-}
-
-// ══════════════════════════════════════════════════════════════
-//  CHART
-// ══════════════════════════════════════════════════════════════
-function drawChart(id, readings, h) {
-  const c = document.getElementById(id);
-  if (!c) return;
-
-  const dpr = devicePixelRatio || 1;
-  c.width = c.offsetWidth * dpr;
-  c.height = h * dpr;
-  const ctx = c.getContext('2d');
-  ctx.scale(dpr, dpr);
-  const W = c.offsetWidth;
-  ctx.clearRect(0, 0, W, h);
-
-  if (readings.length < 2) {
-    ctx.fillStyle = '#3d4d72';
-    ctx.font = '12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(t('needChart'), W / 2, h / 2);
-    return;
-  }
-
-  const pL = 36, pR = 10, pT = 14, pB = 24;
-  const cW = W - pL - pR, cH = h - pT - pB;
-  const vals = readings.map(r => r.value);
-  const minV = Math.max(0, Math.min(...vals) - 20);
-  const maxV = Math.max(...vals) + 20;
-
-  const toX = i => pL + (i / (readings.length - 1)) * cW;
-  const toY = v => pT + cH - ((v - minV) / (maxV - minV)) * cH;
-
-  // Normal range background
-  ctx.fillStyle = 'rgba(110,231,183,.07)';
-  const y140 = toY(Math.min(140, maxV));
-  const y70 = toY(Math.max(70, minV));
-  ctx.fillRect(pL, y140, cW, Math.abs(y70 - y140));
-
-  // Grid lines
-  ctx.strokeStyle = '#252d4a';
-  ctx.lineWidth = 1;
-  [70, 100, 140, 180].forEach(v => {
-    if (v < minV || v > maxV) return;
-    const y = toY(v);
-    ctx.beginPath();
-    ctx.setLineDash([3, 4]);
-    ctx.moveTo(pL, y);
-    ctx.lineTo(W - pR, y);
-    ctx.stroke();
-    ctx.fillStyle = '#3d4d72';
-    ctx.font = '9px sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillText(v, pL - 4, y + 3);
-  });
-  ctx.setLineDash([]);
-
-  // Area fill
-  const g = ctx.createLinearGradient(0, pT, 0, h - pB);
-  g.addColorStop(0, 'rgba(110,231,183,.25)');
-  g.addColorStop(1, 'rgba(110,231,183,0)');
-  ctx.beginPath();
-  ctx.moveTo(toX(0), h - pB);
-  readings.forEach((r, i) => ctx.lineTo(toX(i), toY(r.value)));
-  ctx.lineTo(toX(readings.length - 1), h - pB);
-  ctx.closePath();
-  ctx.fillStyle = g;
-  ctx.fill();
-
-  // Line
-  ctx.beginPath();
-  ctx.strokeStyle = '#6ee7b7';
-  ctx.lineWidth = 2.5;
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  readings.forEach((r, i) => i === 0 ? ctx.moveTo(toX(i), toY(r.value)) : ctx.lineTo(toX(i), toY(r.value)));
-  ctx.stroke();
-
-  // Points
-  readings.forEach((r, i) => {
-    const s = getStatus(r.value);
-    ctx.beginPath();
-    ctx.arc(toX(i), toY(r.value), 4, 0, Math.PI * 2);
-    ctx.fillStyle = s.color;
-    ctx.fill();
-  });
-}
-
-// ══════════════════════════════════════════════════════════════
-//  READING HTML
-// ══════════════════════════════════════════════════════════════
-function rHTML(r, canDel) {
-  const s = getStatus(r.value);
-  return `
-    <div class="reading-item" id="ri-${r.id}">
-      <div class="r-dot" style="background:${s.color}"></div>
-      <div class="r-info">
-        <div class="r-type">${esc(typeLabel(r.type))}</div>
-        <div class="r-time">${fmtD(r.timestamp)} · ${fmtT(r.timestamp)}${r.note ? ' · ' + esc(r.note) : ''}</div>
-      </div>
-      <div>
-        <div class="r-val" style="color:${s.color}">${r.value}</div>
-        <div class="r-unit">mg/dL</div>
-      </div>
-      ${canDel ? `<button class="del-btn" onclick="delReading('${r.id}')">✕</button>` : ''}
-    </div>
-  `;
-}
-
-// ══════════════════════════════════════════════════════════════
-//  LOG READING
-// ══════════════════════════════════════════════════════════════
-let selT = 'Fasting';
-
-function selType(btn) {
-  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('sel'));
-  btn.classList.add('sel');
-  selT = btn.dataset.t;
-}
-
-async function saveReading() {
-  const val = parseInt(document.getElementById('gInput').value);
-  if (!val || val < 20 || val > 600) {
-    showToast(t('invalidInput'), '#f87171');
-    return;
-  }
-
-  const readings = await getReadings(ME.id);
-  readings.push({
-    id: Date.now().toString(),
-    value: val,
-    type: selT,
-    note: document.getElementById('nInput').value.trim(),
-    timestamp: Date.now()
-  });
-
-  await saveReadings(ME.id, readings);
-
-  document.getElementById('gInput').value = '';
-  document.getElementById('nInput').value = '';
-
-  if (tg?.HapticFeedback) {
-    try { tg.HapticFeedback.notificationOccurred('success'); } catch {}
-  }
-
-  showToast(t('saved'));
-  showPage('mine', document.querySelectorAll('.nav-btn')[1]);
-  await renderMine();
-  await renderGroup();
-}
-
-async function delReading(rid) {
-  let r = await getReadings(ME.id);
-  r = r.filter(x => x.id !== rid);
-  await saveReadings(ME.id, r);
-  document.getElementById('ri-' + rid)?.remove();
-  await renderMine();
-  await renderGroup();
-  showToast(t('deleted'), '#f87171');
-}
-
-// ══════════════════════════════════════════════════════════════
 //  MODAL
 // ══════════════════════════════════════════════════════════════
 async function openModal(uid) {
@@ -798,10 +999,8 @@ async function openModal(uid) {
   const readings = await getReadings(uid);
   const last = readings.length ? readings[readings.length - 1] : null;
 
-  const av = document.getElementById('modalAvatar');
-  av.textContent = m.name[0].toUpperCase();
-  av.className = 'user-avatar ' + m.avatarClass;
-
+  document.getElementById('modalAvatar').textContent = m.name[0].toUpperCase();
+  document.getElementById('modalAvatar').className = 'user-avatar ' + m.avatarClass;
   document.getElementById('modalName').textContent = m.name + (uid === ME.id ? ' ' + t('you') : '');
   document.getElementById('modalSub').textContent = '@' + m.username + ' · ' + readings.length + ' ' + t('totalReadings');
 
@@ -810,38 +1009,33 @@ async function openModal(uid) {
   const avg = recent.length ? Math.round(recent.reduce((a, b) => a + b.value, 0) / recent.length) : null;
 
   let html = '';
-
   if (last) {
     const s = getStatus(last.value);
-    html += `
-      <div style="display:flex;gap:10px;margin-bottom:14px">
-        <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center">
-          <div style="font-size:10px;color:var(--muted);margin-bottom:4px">${t('latest')}</div>
-          <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:${s.color}">${last.value}</div>
-          <div style="font-size:10px;color:var(--muted)">mg/dL · ${t(s.lk)}</div>
-        </div>
-        <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center">
-          <div style="font-size:10px;color:var(--muted);margin-bottom:4px">${t('avg7d')}</div>
-          <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--normal)">${avg || '—'}</div>
-          <div style="font-size:10px;color:var(--muted)">mg/dL</div>
-        </div>
+    html += `<div style="display:flex;gap:10px;margin-bottom:14px">
+      <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px">${t('latest')}</div>
+        <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:${s.color}">${last.value}</div>
+        <div style="font-size:10px;color:var(--muted)">mg/dL · ${t(s.lk)}</div>
       </div>
-    `;
+      <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px">${t('avg7d')}</div>
+        <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--normal)">${avg || '—'}</div>
+        <div style="font-size:10px;color:var(--muted)">mg/dL</div>
+      </div>
+    </div>`;
   }
 
   if (readings.length >= 2) {
-    html += `
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">${t('trend')}</div>
-        <canvas id="modalChart" height="100"></canvas>
-      </div>
-    `;
+    html += `<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">${t('trend')}</div>
+      <canvas id="modalChart" height="100"></canvas>
+    </div>`;
   }
 
   html += `<div style="font-size:11px;color:var(--muted);margin-bottom:10px">${t('recent')}</div>`;
   html += readings.length
     ? [...readings].reverse().slice(0, 8).map(r => rHTML(r, false)).join('')
-    : `<div class="empty"><p>${t('noReadings').replace(/\n/g, '<br>')}</p></div>`;
+    : `<div class="empty"><p>${t('noReadings')}</p></div>`;
 
   document.getElementById('modalContent').innerHTML = html;
   document.getElementById('memberModal').classList.add('open');
@@ -875,8 +1069,7 @@ async function renderRankings() {
     const sevenAgo = Date.now() - 7 * 86400000;
     const recent = r.filter(x => x.timestamp > sevenAgo);
     return {
-      ...m,
-      readings: r,
+      ...m, readings: r,
       avg: recent.length ? Math.round(recent.reduce((a, b) => a + b.value, 0) / recent.length) : null,
       tc: r.filter(x => new Date(x.timestamp).toDateString() === todayStr()).length
     };
@@ -887,7 +1080,6 @@ async function renderRankings() {
   el.innerHTML = data.map((m, i) => {
     const last = m.readings.length ? m.readings[m.readings.length - 1] : null;
     const s = last ? getStatus(last.value) : null;
-
     return `
       <div class="member-card ${m.id === ME.id ? 'is-me' : ''}" onclick="openModal('${m.id}')">
         <div class="member-row">
@@ -898,10 +1090,8 @@ async function renderRankings() {
             <div class="member-sub">${m.tc} ${t('readingsToday')} · ${m.readings.length} ${t('total')} · ${t('avg7d')}: ${m.avg || '—'}</div>
           </div>
           <div class="member-reading">
-            ${last ? `
-              <div class="member-val" style="color:${s.color}">${last.value}</div>
-              <div class="member-unit">mg/dL</div>
-            ` : `<div style="color:var(--dim);font-size:11px">${t('noData2')}</div>`}
+            ${last ? `<div class="member-val" style="color:${s.color}">${last.value}</div><div class="member-unit">mg/dL</div>`
+                   : `<div style="color:var(--dim);font-size:11px">${t('noData2')}</div>`}
           </div>
         </div>
       </div>
@@ -918,7 +1108,7 @@ function showPage(name, btn) {
   document.getElementById('page-' + name).classList.add('active');
   btn.classList.add('active');
 
-  if (name === 'log') document.getElementById('tInput').value = new Date().toTimeString().slice(0, 5);
+  if (name === 'log') updateLastReading();
   if (name === 'mine') renderMine();
   if (name === 'group') renderGroup();
   if (name === 'rank') renderRankings();
@@ -947,11 +1137,10 @@ async function init() {
     av.className = 'user-avatar ' + ME.avatarClass;
 
     await ensureRegistered();
+    await updateLastReading();
     await renderGroup();
   } catch (e) {
     console.error('Init error:', e);
-    document.getElementById('membersList').innerHTML =
-      `<div class="empty"><div class="icon">⚠️</div><p>${t('loadError').replace(/\n/g, '<br>')}</p></div>`;
   } finally {
     document.getElementById('loadingScreen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
